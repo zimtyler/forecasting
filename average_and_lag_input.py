@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 from sklearn.preprocessing import StandardScaler
 
-def get_df():
+def get_df() -> pd.DataFrame:
     dir = os.getcwd()
     dfs = []
     for csv in os.listdir(dir):
@@ -16,8 +16,8 @@ def get_df():
     
     return pd.concat(dfs, axis=1).dropna()
 
-def get_best_ma_and_lags(df, ma=None):
-
+def get_best_ma_and_lags(df: pd.DataFrame, target_col: str, exception_cols: list|None=None, ma: list|None=None) -> dict:
+    
     if ma == None:
         ma = [3, 6, 9, 12, 15, 18]
     lags = {}
@@ -27,14 +27,14 @@ def get_best_ma_and_lags(df, ma=None):
         for i in range(132): # 11 years
             for s in ma:
                 df_ = df[[col, 'VehicleSales']].copy()
-                if col == 'M12MTVUSM227SFWA':
+                if exception_cols != None and col in exception_cols:
                     s = 0
                 else:
                     df_[col] = df_[col].rolling(window=s).mean()
-                if col != 'VehicleSales':
+                if col != target_col:
                     df_[col] = df_[col].shift(i)
                     df_.dropna(inplace=True)
-                    cor = df_[[col, 'VehicleSales']].corr()
+                    cor = df_[[col, target_col]].corr()
                     lags[col].append((i, s, np.array(cor).flatten()[1]))
                     
     best_lags = {}
@@ -45,7 +45,7 @@ def get_best_ma_and_lags(df, ma=None):
     
     return best_lags
 
-def average_and_shift_data(df, best_lags):
+def average_and_shift_data(df: pd.DataFrame, best_lags: dict) -> dict:
     df = df.copy()
     for col in df.columns:
         if col != 'VehicleSales':
@@ -58,7 +58,7 @@ def average_and_shift_data(df, best_lags):
     
     return df
 
-def return_x_y(df):
+def return_x_y(df: pd.DataFrame) -> [np.ndarray, np.ndarray, StandardScaler]:
     y = np.array(df.iloc[:, -1]).reshape(-1, 1)
     X = df.iloc[:, :-1]
     xscaler = StandardScaler().fit(X)
